@@ -1,0 +1,13 @@
+{
+  "paths": {
+    "gamePath": "C:\\Program Files (x86)\\Call of Dragons"
+  },
+  "windows": {
+    "launcher": "Launcher",
+    "game": "Call of Dragons"
+  },
+  "folders": {
+    "logs": "logs",
+    "img": "img"
+  }
+}
