@@ -1,24 +1,27 @@
 from utils.log import log
 from utils.config import cfg
 import os
-import cv2
+import pyautogui as pg
+import cv2 as cv
 import numpy as np
-from utils.action import MouseClick
+from utils.action import MouseClick, MouseMove
 
-imgs_folder_path = cfg['folders']['img']
+imgs_folder_path = cfg["folders"]["img"]
 
 images = []
 
 found_any = False
 
+
 def loadImages():
     try:
-        log('Loading images...')
+        log("Loading images...")
 
         items = os.listdir(imgs_folder_path)
 
         for item in items:
             item_path = os.path.join(imgs_folder_path, item)
+
             if os.path.isfile(item_path):
                 images.append(item_path)
 
@@ -26,34 +29,36 @@ def loadImages():
 
         findInteraction()
     except:
-        log('img folder not found, please create it & insert at least one image to detect')
+        log(
+            "img folder not found, please create it & insert at least one image to detect"
+        )
+
 
 def findInteraction():
     try:
-      for target_image_path in images:
-          target_image = cv2.imread(target_image_path)
+        log("Searching for interactions...")
 
-          for reference_image_path in images:
-            if target_image_path == reference_image_path:
-              continue
+        desktop_screenshot = "screenshot.png"
+        pg.screenshot(desktop_screenshot)
 
-            reference_image = cv2.imread(reference_image_path)
+        img = cv.imread(desktop_screenshot, cv.IMREAD_GRAYSCALE)
+        assert img is not None, "Target image could not be read"
 
-            res = cv2.matchTemplate(target_image, reference_image, cv2.TM_CCORR_NORMED)
+        for imageToSearch in images:
+            template = cv.imread(imageToSearch, cv.IMREAD_GRAYSCALE)
+            assert template is not None, "Screenshot could not be read"
+            w, h = template.shape[::-1]
 
-            threshold = 0.8
+            res = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
 
-            locations = np.where(res >= threshold)
+            treshold = 0.95
 
-            if len(locations[0]) > 0:
-              for i in range(len(locations[0])):
-                x, y = locations[1][i] + reference_image.shape[1] // 2, locations[0][i] + reference_image.shape[0] // 2
-                MouseClick(x, y)
-                found_any = True
+            loc = np.where(res >= treshold)
+            for pt in zip(*loc[::-1]):
+                cv.rectangle(img, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+                x, y = pt[0] + w // 2, pt[1] + h // 2
+                pg.moveTo(x, y, duration=1)
+                pg.click(x, y)
 
-      if found_any:
-        log("Clicked on at least one image")
-      else:
-        log("No images found")
     except Exception as e:
-      log(f'ERROR: {str(e)}')
+        log(f"ERROR: {str(e)}")
